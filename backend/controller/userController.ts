@@ -23,6 +23,12 @@ export const registerUser = asyncHandler(
       throw new ApiError(400, "Email already exists");
     }
 
+    // Verify Clerk ID matches the authenticated user
+    const authUserId = (req as any).auth?.userId;
+    if (authUserId && authUserId !== clerk_id) {
+       throw new ApiError(403, "Forbidden: Clerk ID mismatch");
+    }
+
     const user = await User.create({
       clerk_id,
       fullName: fullName.trim(),
@@ -32,18 +38,9 @@ export const registerUser = asyncHandler(
       gender,
     });
 
-    const token = user.generateJwtToken();
-
-    return res
-      .status(201)
-      .cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      })
-      .json(
-        new ApiResponse(201, { user, token }, "User registered successfully")
-      );
+    return res.status(201).json(
+      new ApiResponse(201, user, "User registered successfully")
+    );
   }
 );
 

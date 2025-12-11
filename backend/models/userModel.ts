@@ -1,6 +1,5 @@
 // src/models/user.model.ts
 import mongoose, { Schema } from "mongoose";
-import jwt from "jsonwebtoken";
 import { IUser } from "../interfaces/userInterface";
 
 const geoPointSchema = new Schema({
@@ -92,13 +91,8 @@ const userSchema = new Schema<IUser>({
 });
 
 // --------------------------------------
-// 🔐 JWT TOKEN (NO PASSWORD NEEDED)
+// 🌍 GEO INDEXING
 // --------------------------------------
-userSchema.methods.generateJwtToken = function (): string {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET!, {
-    expiresIn: "7d",
-  });
-};
 
 // --------------------------------------
 // 🌍 GEO INDEXING
