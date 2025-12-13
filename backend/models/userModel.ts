@@ -1,5 +1,6 @@
 // src/models/user.model.ts
 import mongoose, { Schema } from "mongoose";
+
 import { IUser } from "../interfaces/userInterface";
 
 const geoPointSchema = new Schema({

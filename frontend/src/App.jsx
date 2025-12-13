@@ -1,11 +1,12 @@
-import { Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
-import SignUpPage from "./pages/User/signUp";
-import SignInPage from "./pages/User/singIn";
+import { Navigate,Route, Routes } from "react-router-dom";
+
+import Layout from "./components/layout";
 import CompleteRegistration from "./pages/User/completeRegistration";
 import ProfilePage from "./pages/User/profile";
+import SignUpPage from "./pages/User/signUp";
+import SignInPage from "./pages/User/singIn";
 import HomePage from "./pages/userHome";
-import Layout from "./components/layout";
 
 function App() {
   return (

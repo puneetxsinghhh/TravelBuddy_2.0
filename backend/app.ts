@@ -1,10 +1,11 @@
-import express, { Application } from "express";
-import dotenv from "dotenv";
-import cors from "cors";
 import cookieParser from "cookie-parser";
-import userRoutes from "./routes/userRoute";
+import cors from "cors";
+import dotenv from "dotenv";
+import express, { Application } from "express";
+
 import connectToDB from "./db/db";
 import errorMiddleware from "./middlewares/errorMiddleware";
+import userRoutes from "./routes/userRoute";
 
 dotenv.config();
 

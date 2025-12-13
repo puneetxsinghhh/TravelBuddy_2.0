@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from "express";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
+import { NextFunction,Request, Response } from "express";
+
 import { User } from "../models/userModel";
 import ApiError from "../utils/apiError";
 import asyncHandler from "../utils/asyncHandler";

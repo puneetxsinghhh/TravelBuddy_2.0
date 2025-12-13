@@ -1,22 +1,22 @@
 import { useUser } from "@clerk/clerk-react";
-import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowRight,
+  Calendar,
+  Camera,
+  ChevronRight,
   Compass,
-  Users,
+  Heart,
   MapPin,
   MessageCircle,
-  Star,
-  Shield,
-  Zap,
-  Heart,
-  ChevronRight,
   Play,
-  Camera,
-  ArrowRight,
-  Calendar
-} from 'lucide-react';
-import CurrentLocationMap from '../components/currentLocation';
+  Shield,
+  Star,
+  Users,
+  Zap} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
+
+import CurrentLocationMap from '../components/currentLocation';
 
 
 const heroSlides = [

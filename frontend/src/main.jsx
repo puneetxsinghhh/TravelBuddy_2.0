@@ -1,11 +1,13 @@
 import './index.css';
+
+import { ClerkProvider } from "@clerk/clerk-react";
 import ReactDOM from 'react-dom/client';
 import { Toaster } from 'react-hot-toast';
-import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
+
 import App from './App.jsx';
 import store from './redux/store.js';
-import { ClerkProvider } from "@clerk/clerk-react";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ClerkProvider 

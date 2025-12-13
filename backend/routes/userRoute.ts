@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { registerUser, getProfile, updateProfile } from "../controller/userController";
+
+import { getProfile, registerUser, updateProfile } from "../controller/userController";
 import { verifyJWT } from "../middlewares/authMiddleware";
 import upload from "../middlewares/multerMiddleware";
 

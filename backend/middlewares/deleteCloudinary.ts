@@ -1,4 +1,4 @@
-import { v2 as cloudinary, UploadApiResponse, UploadApiOptions } from "cloudinary";
+import { UploadApiOptions,UploadApiResponse, v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME as string,

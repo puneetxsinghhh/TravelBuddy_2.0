@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from "express";
-import { User } from "../models/userModel";
+import { NextFunction,Request, Response } from "express";
 
+import { User } from "../models/userModel";
 import ApiError from "../utils/apiError";
-import asyncHandler from "../utils/asyncHandler";
 import ApiResponse from "../utils/apiResponse";
+import asyncHandler from "../utils/asyncHandler";
 import { registerUserSchema } from "../validation/registerUserSchema";
 
 export const registerUser = asyncHandler(

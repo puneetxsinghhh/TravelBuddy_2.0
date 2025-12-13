@@ -1,27 +1,26 @@
-import { useUser, useClerk, SignedIn, SignedOut } from '@clerk/clerk-react';
-import  { useState,useEffect, useRef } from 'react';
+import { SignedIn, SignedOut,useClerk, useUser } from '@clerk/clerk-react';
 import {
-  Menu,
-  X,
-  Users,
-  MapPin,
-  Compass,
-  Calendar,
-  Plus,
-  Bell,
-  Globe,
-  ChevronDown,
-  User,
   Activity,
-  LogOut,
-  Trash2,
+  Bell,
+  Calendar,
+  ChevronDown,
+  Compass,
+  Globe,
   Link,
-  Settings
-} from 'lucide-react';
+  LogOut,
+  MapPin,
+  Menu,
+  Plus,
+  Settings,
+  Trash2,
+  User,
+  Users,
+  X} from 'lucide-react';
+import  { useEffect, useRef,useState } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 import ReverseGeocode from '../helpers/reverseGeoCode';
-import toast from 'react-hot-toast';
 
 
 function NavBar() {
