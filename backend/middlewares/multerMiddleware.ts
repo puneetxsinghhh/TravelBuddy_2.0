@@ -1,8 +1,9 @@
+import { Request } from "express";
+import fs from "fs";
 import multer, { FileFilterCallback } from "multer";
 import path from "path";
-import fs from "fs";
+
 import ApiError from "../utils/apiError";
-import { Request } from "express";
 
 // -----------------------------
 // Ensure uploads directory exists

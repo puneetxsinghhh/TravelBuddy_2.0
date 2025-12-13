@@ -1,5 +1,6 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { userService, createAuthenticatedApi } from '../services/api';
+import { createAsyncThunk,createSlice } from '@reduxjs/toolkit';
+
+import { createAuthenticatedApi,userService } from '../services/api';
 
 // Initial state
 const initialState = {

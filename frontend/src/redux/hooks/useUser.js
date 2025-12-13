@@ -1,12 +1,13 @@
-import { useDispatch, useSelector } from 'react-redux';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+
 import {
-  registerUser,
-  fetchProfile,
-  updateProfile,
   clearError,
   clearProfile,
+  fetchProfile,
+  registerUser,
+  updateProfile,
 } from '../slices/userSlice';
 
 // Custom hook for user actions with Redux

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useUser, useAuth } from '@clerk/clerk-react';
-import { useUserActions } from '../../redux/hooks/useUser';
-import { Calendar, User, Globe, Heart, Languages, Briefcase, Edit2, Save, X } from 'lucide-react';
+import { useAuth,useUser } from '@clerk/clerk-react';
+import { Briefcase, Calendar, Edit2, Globe, Heart, Languages, Save, User, X } from 'lucide-react';
+import { useEffect,useState } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+
+import { useUserActions } from '../../redux/hooks/useUser';
 
 export default function ProfilePage() {
   const { user: clerkUser, isLoaded: isUserLoaded } = useUser();

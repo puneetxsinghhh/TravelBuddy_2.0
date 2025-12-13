@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useUser, useAuth } from '@clerk/clerk-react';
-import { useUserActions } from '../../redux/hooks/useUser';
+import { useAuth,useUser } from '@clerk/clerk-react';
+import { useEffect, useRef,useState } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+
+import { useUserActions } from '../../redux/hooks/useUser';
 
 export default function CompleteRegistration() {
   const { user, isLoaded: isUserLoaded } = useUser();
