@@ -20,8 +20,10 @@ import {
 import  { useEffect, useRef,useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-
 import ReverseGeocode from '../helpers/reverseGeoCode';
+
+import { useSocketContext } from '../context/socketContext';
+
 
 
 function NavBar() {
@@ -36,9 +38,9 @@ function NavBar() {
 const currentUser  = {
     fullName: user?.fullName,
     profilePicture: user?.imageUrl,
-    currentLocation: { lat: 28.6139, lng: 77.209 }
+
   };
-  console.log('Current User:', currentUser);
+
 
   const notificationCount = 3;
 
@@ -47,6 +49,9 @@ const currentUser  = {
   const userDisplayName = user?.fullName || user?.firstName || 'User';
   const userEmail = user?.primaryEmailAddress?.emailAddress || '';
 
+
+  const { socket } = useSocketContext();
+  const [currentLocationName, setCurrentLocationName] = useState('Locating...');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -57,6 +62,52 @@ const currentUser  = {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    const updateLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            console.log('Current Location:', { latitude, longitude });
+
+             // 1. Get readable address for UI
+            try {
+               const address = await ReverseGeocode({ lat: latitude, lng: longitude });
+               console.log('address', address);
+
+               setCurrentLocationName(address);
+            } catch (error) {
+               console.error("Error reverse geocoding:", error);
+               setCurrentLocationName("Unknown Location");
+            }
+
+            // 2. Emit location to backend via socket
+            if (socket) {
+              socket.emit("updateLocation", { lat: latitude, lng: longitude });
+            }
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            setCurrentLocationName("Location Unavailable");
+          },
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+        );
+      } else {
+        setCurrentLocationName("Geolocation not supported");
+      }
+    };
+
+    // Initial update
+    updateLocation();
+
+    // Update every 1 minute
+    const intervalId = setInterval(updateLocation, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [isSignedIn, socket]);
 
   const handleLogin = (path) => {
     navigate(path);
@@ -121,7 +172,7 @@ const currentUser  = {
           {isSignedIn && (
             <div className="hidden lg:flex items-center space-x-1 text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
               <MapPin size={24} className="text-amber-600" />
-              <span>Your Location</span>
+              <span className="truncate max-w-[200px]">{currentLocationName}</span>
             </div>
           )}
 
@@ -257,7 +308,7 @@ const currentUser  = {
             {isSignedIn && (
               <div className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 bg-gray-50 rounded-lg mx-3 mb-3">
                 <MapPin size={14} className="text-blue-500" />
-                <span>Your Location</span>
+                <span className="truncate">{currentLocationName}</span>
               </div>
             )}
 

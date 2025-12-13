@@ -1,51 +1,40 @@
 import axios from 'axios';
-import { useEffect,useState } from 'react';
 
-function ReverseGeocode({ lat, lng }) {
-  const [locationText, setLocationText] = useState('');
-  const [pincode, setPincode] = useState('');
+const ReverseGeocode = async ({ lat, lng }) => {
+  try {
+    const apiKey = import.meta.env.VITE_GOOGLE_API;
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
+    );
+     // console.log(response.data);
+    if (response.data.results.length > 0) {
+      const components = response.data.results[0].address_components;
 
-  useEffect(() => {
-    const getLocationDetails = async () => {
-      try {
-        const apiKey = import.meta.env.VITE_GOOGLE_API;
-        const response = await axios.get(
-          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
-        );
+      // Extract Area Name (Sublocality -> Neighborhood -> Locality)
+      const sublocalityLevel2 = components.find(c => c.types.includes('sublocality_level_2'))?.long_name;
+      const sublocalityLevel1 = components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+      const sublocality = components.find(c => c.types.includes('sublocality'))?.long_name;
+      const neighborhood = components.find(c => c.types.includes('neighborhood'))?.long_name;
+      const locality = components.find(c => c.types.includes('locality'))?.long_name;
+      const adminArea2 = components.find(c => c.types.includes('administrative_area_level_2'))?.long_name;
 
-        if (response.data.results.length > 0) {
-          const components = response.data.results[0].address_components;
+      const areaName = sublocalityLevel2 || sublocalityLevel1 || sublocality || neighborhood || locality || adminArea2 || '';
 
-          const cityComponent = components.find(c => c.types.includes('locality'));
-          const countryComponent = components.find(c => c.types.includes('country'));
-          const postalComponent = components.find(c => c.types.includes('postal_code'));
+      // Extract Pincode
+      const postalCode = components.find(c => c.types.includes('postal_code'))?.long_name || '';
 
-          const city = cityComponent ? cityComponent.long_name : '';
-          const country = countryComponent ? countryComponent.long_name : '';
-          const postal = postalComponent ? postalComponent.long_name : '';
+      if (areaName && postalCode) return `${areaName} ${postalCode}`;
+      if (areaName) return areaName;
+      if (postalCode) return postalCode;
 
-          setLocationText(`${city}${country ? ', ' + country : ''}`);
-          setPincode(postal || 'Pincode not found');
-        } else {
-          setLocationText('Location not found');
-          setPincode('');
-        }
-      } catch (error) {
-        console.error('Geocoding error:', error);
-        setLocationText('Error fetching location');
-        setPincode('');
-      }
-    };
-
-    getLocationDetails();
-  }, [lat, lng]);
-
-  return (
-    <div className="text-gray-700 mt-2">
-      <div><strong>{locationText}</strong></div>
-      <div className="text-sm text-gray-500">{pincode}</div>
-    </div>
-  );
-}
+      return response.data.results[0].formatted_address;
+    } else {
+      return 'Location not found';
+    }
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return 'Error fetching location';
+  }
+};
 
 export default ReverseGeocode;
