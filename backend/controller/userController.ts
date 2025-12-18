@@ -4,8 +4,10 @@ import { User } from "../models/userModel";
 import ApiError from "../utils/apiError";
 import ApiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
-import { registerUserSchema } from "../validation/registerUserSchema";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { registerUserSchema, updateProfileSchema } from "../validation/userValidation";
+import deleteFromCloudinaryByUrl from "../middlewares/deleteCloudinary";
+import { uploadCoverImage } from "../middlewares/cloudinary";
+import OpenAI from "openai";
 export const registerUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const parsed = registerUserSchema.safeParse(req.body);
@@ -167,31 +169,55 @@ export const updateProfile = asyncHandler(
   }
 );
 export const generateDescription = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-   const {title,category} = req.body;
+   const {title, category} = req.body;
+
    if(!title || !category){
     throw new ApiError(400,"Title and category are required");
    }
-   console.log('title',title);
-   console.log('category',category);
 
-   const user_id = req.user?._id;
+   console.log('Generating AI description for:', title, category);
 
-   const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY || "");
+   // Groq AI uses OpenAI-compatible API
+   const client = new OpenAI({
+     apiKey: process.env.GROQ_API_KEY,
+     baseURL: "https://api.groq.com/openai/v1",
+   });
+
    try {
-    const model = genAI.getGenerativeModel({model: "gemini-2.0-flash-exp"});
-   const prompt = `You are an expert activity planner. Generate a short and engaging activity description for Title: ${title} Category: ${category} Requirements
-   -5 to 6 sentences
-- Simple and clear English
-- No emojis
-- Friendly tone`;
-   const result = await model.generateContent(prompt);
-   const description = result.response.text();
-   return res.status(200).json(new ApiResponse(200, description, "Description generated successfully"));
-   } catch (error) {
-     console.error("Gemini AI Error:", error);
-     throw new ApiError(500, "Failed to generate description via AI");
+     const prompt = `
+  You are an expert activity planner.
+
+  Generate a short and engaging activity description for:
+  Title: ${title}
+  Category: ${category}
+
+  Requirements:
+  - 5 to 6 sentences
+  - Simple and clear English
+  - No emojis
+  - Friendly tone
+  `;
+
+     const completion = await client.chat.completions.create({
+       model: "llama-3.1-8b-instant",
+       messages: [{ role: "user", content: prompt }],
+     });
+
+     const description = completion.choices[0]?.message?.content;
+
+     if (!description) {
+       throw new Error("No description generated");
+     }
+
+     return res.status(200).json(new ApiResponse(200, description, "Description generated successfully"));
+
+   } catch (error: any) {
+     console.error("Groq AI Error:", error);
+
+     if (error.status === 401) {
+        throw new ApiError(401, "Invalid Groq API key.");
+     }
+
+     throw new ApiError(500, error.message || "Failed to generate description via AI");
    }
 })
-
-
-
