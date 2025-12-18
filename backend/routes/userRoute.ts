@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { getProfile, registerUser, updateProfile } from "../controller/userController";
+import { getProfile, registerUser, updateProfile,generateDescription } from "../controller/userController";
 import { requireProfile,verifyClerk } from "../middlewares/authMiddleware";
 import upload from "../middlewares/multerMiddleware";
 
@@ -12,6 +12,7 @@ router.post("/register", verifyClerk, upload.none(), registerUser);
 // These routes require full auth (Clerk + MongoDB profile)
 router.get("/profile", requireProfile, getProfile);
 router.patch("/update-profile", requireProfile, updateProfile);
+router.post("/api-description",generateDescription)
 
 export default router;
 

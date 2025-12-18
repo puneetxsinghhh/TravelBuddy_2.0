@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useRef } from "react";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
-import { Calendar, Clock, MapPin, DollarSign, Users, Image as ImageIcon, AlignLeft, Send, X, Plus, Video } from "lucide-react";
+import { GoogleMap, Marker, useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+import { Calendar, Clock, MapPin, DollarSign, Users, Image as ImageIcon, AlignLeft, Send, X, Plus, Video, Search, Mic, MicOff, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -19,12 +19,35 @@ export default function CreateActivity() {
   const navigate = useNavigate();
   const { profile } = useSelector((state) => state.user);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const mapRef = useRef(null);
+  const autocompleteRef = useRef(null);
+
+  const onAutocompleteLoad = (autocomplete) => {
+    autocompleteRef.current = autocomplete;
+  };
+
+  const onPlaceChanged = () => {
+    if (autocompleteRef.current !== null) {
+      const place = autocompleteRef.current.getPlace();
+      if (place.geometry && place.geometry.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+
+        const newLocation = { lat, lng };
+        setFormData((prev) => ({
+             ...prev,
+             location: newLocation
+        }));
+        setCenter(newLocation);
+      } else {
+        toast.error("Please select a location from the dropdown");
+      }
+    }
+  };
 
   React.useEffect(() => {
-    // Check if user has a subscription
-    // Assuming 'Free' is also a valid planType if they went through the process,
-    // or if the requirement is STRICTLY paid, change condition to: profile?.planType === 'Free'
     if (profile && !profile.planType) {
       toast.error("Please select a subscription plan to create activities.");
       navigate("/subscription");
@@ -48,7 +71,7 @@ export default function CreateActivity() {
     videos: []
   });
 
-  const [photoInput, setPhotoInput] = useState("");
+  const fileInputRef = useRef(null);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_API,
@@ -73,18 +96,91 @@ export default function CreateActivity() {
   }, []);
 
   // Handle Photo Add
-  const handleAddPhoto = () => {
-    if (photoInput.trim()) {
-      setFormData(prev => ({ ...prev, photos: [...prev.photos, photoInput] }));
-      setPhotoInput("");
+  const handlePhotoSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      const newPhotos = files.map(file => ({
+        file,
+        preview: URL.createObjectURL(file)
+      }));
+      setFormData(prev => ({ ...prev, photos: [...prev.photos, ...newPhotos] }));
     }
   };
 
   const handleRemovePhoto = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      photos: prev.photos.filter((_, i) => i !== index)
-    }));
+    setFormData(prev => {
+      const updatedPhotos = [...prev.photos];
+      URL.revokeObjectURL(updatedPhotos[index].preview);
+      updatedPhotos.splice(index, 1);
+      return { ...prev, photos: updatedPhotos };
+    });
+  };
+
+  // Voice Recording Logic
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const startRecording = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error("Voice input is not supported in this browser.");
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      toast("Listening...", { icon: '🎙️' });
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      if (finalTranscript) {
+         setFormData(prev => ({
+           ...prev,
+           description: prev.description + (prev.description ? " " : "") + finalTranscript
+         }));
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+
+    window.recognitionInstance = recognition;
+    recognition.start();
+  };
+
+  const stopRecording = () => {
+    if (window.recognitionInstance) {
+      window.recognitionInstance.stop();
+      setIsRecording(false);
+    }
   };
 
   // Submit Handler
@@ -97,33 +193,86 @@ export default function CreateActivity() {
         throw new Error("Please select a location on the map");
       }
 
-      // Format data for backend
-      // Backend expects:
-      // location: { type: "Point", coordinates: [lng, lat] }
-      // date: Date object/string
-      // startTime/endTime: Date objects/strings
+      const formPayload = new FormData();
+      formPayload.append("title", formData.title);
+      formPayload.append("description", formData.description);
+      formPayload.append("category", formData.category);
+      formPayload.append("date", formData.date);
+      formPayload.append("startTime", formData.startTime);
+      formPayload.append("endTime", formData.endTime || "");
+      formPayload.append("price", formData.price.toString());
+      formPayload.append("foreignerPrice", (formData.foreignerPrice || "").toString());
+      formPayload.append("maxCapacity", formData.maxCapacity.toString());
+      if (formData.gender !== "Any") {
+        formPayload.append("gender", formData.gender);
+      }
 
-      const payload = {
-        ...formData,
-        location: {
-          type: "Point",
-          coordinates: [formData.location.lng, formData.location.lat]
+      formPayload.append("location", JSON.stringify({
+         type: "Point",
+         coordinates: [formData.location.lng, formData.location.lat]
+      }));
+
+      // Append photos
+      formData.photos.forEach(p => {
+        if (p.file) {
+            formPayload.append("photos", p.file);
+        }
+      });
+
+      // Append videos (URLs)
+      formData.videos.forEach(v => {
+         formPayload.append("videos", v);
+      });
+
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/activities`, formPayload, {
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
-        gender: formData.gender === "Any" ? undefined : formData.gender
-      };
+        withCredentials: true
+      });
 
-      // Mock submit or actual call
-      // await axios.post(`${import.meta.env.VITE_API_URL}/api/activities`, payload);
-
-      console.log("Submitting:", payload);
+      console.log("Response:", response.data);
       toast.success("Activity created successfully!");
-      // navigate('/activities'); // Redirect after success
+      // navigate('/activities');
 
     } catch (error) {
       console.error(error);
-      toast.error(error.message || "Failed to create activity");
+      toast.error(error.response?.data?.message || error.message || "Failed to create activity");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // AI Description Generation
+  const handleGenerateDescription = async () => {
+    if (!formData.title || !formData.category) {
+      toast.error("Please enter Title and Category first to generate description.");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/users/api-description`,
+        {
+          title: formData.title,
+          category: formData.category
+        }
+      );
+
+      const generatedText = response.data.data;
+      if (generatedText) {
+        setFormData(prev => ({
+          ...prev,
+          description: generatedText
+        }));
+        toast.success("Description generated manually!");
+      }
+    } catch (error) {
+      console.error("AI Generation Error:", error);
+      toast.error(error.response?.data?.message || "Failed to generate description");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -215,15 +364,41 @@ export default function CreateActivity() {
                 </div>
 
                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                   <textarea
-                     name="description"
-                     value={formData.description}
-                     onChange={handleChange}
-                     rows="4"
-                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                     placeholder="Describe the activity, what to bring, itinerary..."
-                   ></textarea>
+                   <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700">Description</label>
+                      <button
+                        type="button"
+                        onClick={handleGenerateDescription}
+                        disabled={isGenerating}
+                        className="text-indigo-600 hover:text-indigo-700 text-xs font-medium flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+                      >
+                        {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        {isGenerating ? "Generating..." : "Generate with AI"}
+                      </button>
+                   </div>
+                   <div className="relative">
+                     <textarea
+                       name="description"
+                       value={formData.description}
+                       onChange={handleChange}
+                       rows="4"
+                       className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                       placeholder="Describe the activity, what to bring, itinerary..."
+                     ></textarea>
+                     <button
+                       type="button"
+                       onClick={toggleRecording}
+                       className={`absolute bottom-3 right-3 p-2 rounded-full transition-all ${
+                         isRecording
+                           ? "bg-red-100 text-red-600 animate-pulse"
+                           : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                       }`}
+                       title={isRecording ? "Stop Recording" : "Start Voice Input"}
+                     >
+                       {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                     </button>
+                   </div>
+                   {isRecording && <p className="text-xs text-red-500 mt-1 animate-pulse">Recording... Speak now</p>}
                 </div>
               </div>
             </div>
@@ -329,6 +504,23 @@ export default function CreateActivity() {
                  <MapPin className="w-5 h-5 text-indigo-500" />
                  Location
                </h2>
+               {isLoaded && (
+                  <div className="mb-4">
+                    <Autocomplete
+                      onLoad={onAutocompleteLoad}
+                      onPlaceChanged={onPlaceChanged}
+                    >
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search for a place..."
+                          className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        />
+                      </div>
+                    </Autocomplete>
+                  </div>
+               )}
                <div className="h-64 bg-gray-100 rounded-xl overflow-hidden relative">
                  {isLoaded ? (
                     <GoogleMap
@@ -361,40 +553,43 @@ export default function CreateActivity() {
                  Photos
                </h2>
 
-               <div className="flex gap-2">
-                 <input
-                   type="text"
-                   value={photoInput}
-                   onChange={(e) => setPhotoInput(e.target.value)}
-                   placeholder="Paste image URL..."
-                   className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                 />
-                 <button
-                   type="button"
-                   onClick={handleAddPhoto}
-                   className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+               <div className="space-y-4">
+                 <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-all group"
                  >
-                   <Plus className="w-5 h-5" />
-                 </button>
-               </div>
-
-               <div className="space-y-2">
-                 {formData.photos.length === 0 && (
-                    <div className="text-sm text-gray-400 italic text-center py-4">No photos added yet</div>
-                 )}
-                 {formData.photos.map((url, idx) => (
-                   <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg group">
-                     <img src={url} alt="Preview" className="w-10 h-10 rounded object-cover" />
-                     <span className="text-xs text-gray-500 truncate flex-1">{url}</span>
-                     <button
-                       type="button"
-                       onClick={() => handleRemovePhoto(idx)}
-                       className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                     >
-                       <X className="w-4 h-4" />
-                     </button>
+                   <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      multiple
+                      accept="image/*"
+                      onChange={handlePhotoSelect}
+                   />
+                   <div className="w-12 h-12 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <ImageIcon className="w-6 h-6" />
                    </div>
-                 ))}
+                   <p className="text-sm font-medium text-gray-700">Click to upload photos</p>
+                   <p className="text-xs text-gray-500">SVG, PNG, JPG or GIF</p>
+                 </div>
+
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                   {formData.photos.map((photo, idx) => (
+                     <div key={idx} className="relative group rounded-lg overflow-hidden aspect-square border border-gray-200">
+                       <img src={photo.preview} alt="Preview" className="w-full h-full object-cover" />
+                       <button
+                         type="button"
+                         onClick={() => handleRemovePhoto(idx)}
+                         className="absolute top-2 right-2 p-1 bg-white/80 hover:bg-red-500 hover:text-white text-gray-600 rounded-full opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm shadow-sm"
+                       >
+                         <X className="w-4 h-4" />
+                       </button>
+                     </div>
+                   ))}
+                 </div>
+                 {formData.photos.length === 0 && (
+                    <div className="text-sm text-gray-400 italic text-center">No photos selected</div>
+                 )}
                </div>
              </div>
 

@@ -1,10 +1,11 @@
 import { NextFunction,Request, Response } from "express";
-
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { User } from "../models/userModel";
 import ApiError from "../utils/apiError";
 import ApiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
 import { registerUserSchema } from "../validation/registerUserSchema";
+import { log } from "console";
 
 export const registerUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -69,7 +70,7 @@ export const getProfile = asyncHandler(
              await user.save();
         }
     }
-    
+
     // Check if Single plan has consumed all activities (though this should be handled at usage time)
     if (user.planType === "Single" && user.remainingActivityCount <= 0) {
         user.planType = "None";
@@ -166,6 +167,32 @@ export const updateProfile = asyncHandler(
       .json(new ApiResponse(200, user, "Profile updated successfully"));
   }
 );
+export const generateDescription = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+   const {title,category} = req.body;
+   if(!title || !category){
+    throw new ApiError(400,"Title and category are required");
+   }
+   console.log('title',title);
+   console.log('category',category);
+
+   const user_id = req.user?._id;
+
+   const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY || "");
+   try {
+    const model = genAI.getGenerativeModel({model: "gemini-2.0-flash-exp"});
+   const prompt = `You are an expert activity planner. Generate a short and engaging activity description for Title: ${title} Category: ${category} Requirements
+   -5 to 6 sentences
+- Simple and clear English
+- No emojis
+- Friendly tone`;
+   const result = await model.generateContent(prompt);
+   const description = result.response.text();
+   return res.status(200).json(new ApiResponse(200, description, "Description generated successfully"));
+   } catch (error) {
+     console.error("Gemini AI Error:", error);
+     throw new ApiError(500, "Failed to generate description via AI");
+   }
+})
 
 
 
