@@ -1,13 +1,13 @@
 import { NextFunction,Request, Response } from "express";
 
-import { uploadCoverImage } from "../middlewares/cloudinary";
-import deleteFromCloudinaryByUrl from "../middlewares/deleteCloudinary";
 import { User } from "../models/userModel";
 import ApiError from "../utils/apiError";
 import ApiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
 import { registerUserSchema, updateProfileSchema } from "../validation/userValidation";
-
+import deleteFromCloudinaryByUrl from "../middlewares/deleteCloudinary";
+import { uploadCoverImage } from "../middlewares/cloudinary";
+import OpenAI from "openai";
 export const registerUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const parsed = registerUserSchema.safeParse(req.body);
@@ -71,7 +71,7 @@ export const getProfile = asyncHandler(
              await user.save();
         }
     }
-    
+
     // Check if Single plan has consumed all activities (though this should be handled at usage time)
     if (user.planType === "Single" && user.remainingActivityCount <= 0) {
         user.planType = "None";
@@ -87,10 +87,10 @@ export const updateProfile = asyncHandler(
     // When using FormData (for file uploads), nested objects are sent as JSON strings
     // Parse them back to objects before validation
     const bodyToValidate = { ...req.body };
-    
+
     // Fields that might be JSON strings when sent via FormData
     const jsonFields = ['languages', 'interests', 'socialLinks', 'futureDestinations'];
-    
+
     for (const field of jsonFields) {
       if (bodyToValidate[field] && typeof bodyToValidate[field] === 'string') {
         try {
@@ -132,10 +132,10 @@ export const updateProfile = asyncHandler(
     // Handle cover image upload
     if (req.file) {
       const localFilePath = req.file.path;
-      
+
       // Upload new image to Cloudinary
       const uploadResult = await uploadCoverImage(localFilePath);
-      
+
       if (!uploadResult) {
         throw new ApiError(500, "Failed to upload cover image");
       }
@@ -168,7 +168,56 @@ export const updateProfile = asyncHandler(
       .json(new ApiResponse(200, user, "Profile updated successfully"));
   }
 );
+export const generateDescription = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+   const {title, category} = req.body;
 
+   if(!title || !category){
+    throw new ApiError(400,"Title and category are required");
+   }
 
+   console.log('Generating AI description for:', title, category);
 
+   // Groq AI uses OpenAI-compatible API
+   const client = new OpenAI({
+     apiKey: process.env.GROQ_API_KEY,
+     baseURL: "https://api.groq.com/openai/v1",
+   });
 
+   try {
+     const prompt = `
+  You are an expert activity planner.
+
+  Generate a short and engaging activity description for:
+  Title: ${title}
+  Category: ${category}
+
+  Requirements:
+  - 5 to 6 sentences
+  - Simple and clear English
+  - No emojis
+  - Friendly tone
+  `;
+
+     const completion = await client.chat.completions.create({
+       model: "llama-3.1-8b-instant",
+       messages: [{ role: "user", content: prompt }],
+     });
+
+     const description = completion.choices[0]?.message?.content;
+
+     if (!description) {
+       throw new Error("No description generated");
+     }
+
+     return res.status(200).json(new ApiResponse(200, description, "Description generated successfully"));
+
+   } catch (error: any) {
+     console.error("Groq AI Error:", error);
+
+     if (error.status === 401) {
+        throw new ApiError(401, "Invalid Groq API key.");
+     }
+
+     throw new ApiError(500, error.message || "Failed to generate description via AI");
+   }
+})
