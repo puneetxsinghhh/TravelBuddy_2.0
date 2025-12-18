@@ -56,7 +56,8 @@ function Footer() {
     { name: 'Privacy Policy', path: '/privacy' },
     { name: 'Terms of Service', path: '/terms' },
     { name: 'Cookie Policy', path: '/cookies' },
-    { name: 'Community Guidelines', path: '/guidelines' }
+    { name: 'Community Guidelines', path: '/guidelines' },
+    { name: 'Refund Policy', path: '/refund' }
   ];
 
   const socialLinks = [
