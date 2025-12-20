@@ -199,3 +199,230 @@ export const getNearbyTouristPlaces = asyncHandler(
             .json(new ApiResponse(200, placesWithDetails, "Nearby tourist places fetched successfully"));
     }
 );
+
+// Get Nearby Restaurants (Food & Nightlife)
+export const getNearbyRestaurants = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const { lat, lng, radius = "20000" } = req.query;
+
+        if (!lat || !lng) {
+            throw new ApiError(400, "Latitude and longitude are required");
+        }
+
+        if (!GOOGLE_PLACES_API_KEY) {
+            throw new ApiError(500, "Google Places API key not configured");
+        }
+
+        // Fetch restaurants, cafes, bars, and night clubs
+        const types = ["restaurant", "cafe", "bar", "night_club"];
+        const allResults: PlaceResult[] = [];
+
+        for (const type of types) {
+            const url = `${PLACES_BASE_URL}/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${GOOGLE_PLACES_API_KEY}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.status === "OK") {
+                allResults.push(...data.results);
+            }
+        }
+
+        // Remove duplicates by place_id
+        const uniquePlaces = allResults.filter(
+            (place, index, self) => index === self.findIndex((p) => p.place_id === place.place_id)
+        );
+
+        const places = uniquePlaces.map((place: PlaceResult) =>
+            transformPlaceResult(place, parseFloat(lat as string), parseFloat(lng as string))
+        );
+
+        // Add category
+        const placesWithCategory = places.map((place: ReturnType<typeof transformPlaceResult>) => {
+            let category = "Restaurant";
+            if (place.types?.some((t: string) => t === "cafe")) {
+                category = "Cafe";
+            } else if (place.types?.some((t: string) => t === "bar")) {
+                category = "Bar";
+            } else if (place.types?.some((t: string) => t === "night_club")) {
+                category = "Nightclub";
+            }
+
+            return { ...place, category };
+        });
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, placesWithCategory, "Nearby restaurants fetched successfully"));
+    }
+);
+
+// Get Nearby Shopping
+export const getNearbyShopping = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const { lat, lng, radius = "20000" } = req.query;
+
+        if (!lat || !lng) {
+            throw new ApiError(400, "Latitude and longitude are required");
+        }
+
+        if (!GOOGLE_PLACES_API_KEY) {
+            throw new ApiError(500, "Google Places API key not configured");
+        }
+
+        const types = ["shopping_mall", "department_store", "supermarket", "clothing_store"];
+        const allResults: PlaceResult[] = [];
+
+        for (const type of types) {
+            const url = `${PLACES_BASE_URL}/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${GOOGLE_PLACES_API_KEY}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.status === "OK") {
+                allResults.push(...data.results);
+            }
+        }
+
+        const uniquePlaces = allResults.filter(
+            (place, index, self) => index === self.findIndex((p) => p.place_id === place.place_id)
+        );
+
+        const places = uniquePlaces.map((place: PlaceResult) =>
+            transformPlaceResult(place, parseFloat(lat as string), parseFloat(lng as string))
+        );
+
+        const placesWithCategory = places.map((place: ReturnType<typeof transformPlaceResult>) => {
+            let category = "Store";
+            if (place.types?.some((t: string) => t === "shopping_mall")) {
+                category = "Mall";
+            } else if (place.types?.some((t: string) => t === "supermarket")) {
+                category = "Supermarket";
+            } else if (place.types?.some((t: string) => t === "clothing_store")) {
+                category = "Clothing";
+            }
+
+            return { ...place, category };
+        });
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, placesWithCategory, "Nearby shopping fetched successfully"));
+    }
+);
+
+// Get Nearby Emergency Services
+export const getNearbyEmergency = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const { lat, lng, radius = "20000" } = req.query;
+
+        if (!lat || !lng) {
+            throw new ApiError(400, "Latitude and longitude are required");
+        }
+
+        if (!GOOGLE_PLACES_API_KEY) {
+            throw new ApiError(500, "Google Places API key not configured");
+        }
+
+        const types = ["hospital", "pharmacy", "police", "fire_station", "atm", "bank"];
+        const allResults: PlaceResult[] = [];
+
+        for (const type of types) {
+            const url = `${PLACES_BASE_URL}/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${GOOGLE_PLACES_API_KEY}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.status === "OK") {
+                allResults.push(...data.results);
+            }
+        }
+
+        const uniquePlaces = allResults.filter(
+            (place, index, self) => index === self.findIndex((p) => p.place_id === place.place_id)
+        );
+
+        const places = uniquePlaces.map((place: PlaceResult) =>
+            transformPlaceResult(place, parseFloat(lat as string), parseFloat(lng as string))
+        );
+
+        const placesWithCategory = places.map((place: ReturnType<typeof transformPlaceResult>) => {
+            let category = "Emergency";
+            if (place.types?.some((t: string) => t === "hospital")) {
+                category = "Hospital";
+            } else if (place.types?.some((t: string) => t === "pharmacy")) {
+                category = "Pharmacy";
+            } else if (place.types?.some((t: string) => t === "police")) {
+                category = "Police";
+            } else if (place.types?.some((t: string) => t === "fire_station")) {
+                category = "Fire Station";
+            } else if (place.types?.some((t: string) => t === "atm")) {
+                category = "ATM";
+            } else if (place.types?.some((t: string) => t === "bank")) {
+                category = "Bank";
+            }
+
+            return { ...place, category };
+        });
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, placesWithCategory, "Nearby emergency services fetched successfully"));
+    }
+);
+
+// Get Nearby Transport
+export const getNearbyTransport = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const { lat, lng, radius = "20000" } = req.query;
+
+        if (!lat || !lng) {
+            throw new ApiError(400, "Latitude and longitude are required");
+        }
+
+        if (!GOOGLE_PLACES_API_KEY) {
+            throw new ApiError(500, "Google Places API key not configured");
+        }
+
+        const types = ["airport", "bus_station", "train_station", "subway_station", "car_rental", "gas_station"];
+        const allResults: PlaceResult[] = [];
+
+        for (const type of types) {
+            const url = `${PLACES_BASE_URL}/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${GOOGLE_PLACES_API_KEY}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.status === "OK") {
+                allResults.push(...data.results);
+            }
+        }
+
+        const uniquePlaces = allResults.filter(
+            (place, index, self) => index === self.findIndex((p) => p.place_id === place.place_id)
+        );
+
+        const places = uniquePlaces.map((place: PlaceResult) =>
+            transformPlaceResult(place, parseFloat(lat as string), parseFloat(lng as string))
+        );
+
+        const placesWithCategory = places.map((place: ReturnType<typeof transformPlaceResult>) => {
+            let category = "Transport";
+            if (place.types?.some((t: string) => t === "airport")) {
+                category = "Airport";
+            } else if (place.types?.some((t: string) => t === "bus_station")) {
+                category = "Bus Station";
+            } else if (place.types?.some((t: string) => t === "train_station")) {
+                category = "Train Station";
+            } else if (place.types?.some((t: string) => t === "subway_station")) {
+                category = "Metro";
+            } else if (place.types?.some((t: string) => t === "car_rental")) {
+                category = "Car Rental";
+            } else if (place.types?.some((t: string) => t === "gas_station")) {
+                category = "Gas Station";
+            }
+
+            return { ...place, category };
+        });
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, placesWithCategory, "Nearby transport fetched successfully"));
+    }
+);
