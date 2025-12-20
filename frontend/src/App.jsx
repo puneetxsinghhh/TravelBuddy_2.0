@@ -15,6 +15,7 @@ import ProfilePage from "./pages/User/profile";
 import SignUpPage from "./pages/User/signUp";
 import SignInPage from "./pages/User/singIn";
 import HomePage from "./pages/userHome";
+import ActivityDetails from "./pages/Activity/ActivityDetails";
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
        <Route path="activities" element={<AuthGuard><ActivityNearMe /></AuthGuard>} />
        <Route path="subscription" element={<AuthGuard><BuySubscription /></AuthGuard>} />
        <Route path="payment-status" element={<AuthGuard><PaymentStatus /></AuthGuard>} />
+       <Route path="activity/:id" element={<AuthGuard><ActivityDetails /></AuthGuard>} />
      </Route>
     </Routes>
   );
