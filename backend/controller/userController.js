@@ -1,1 +1,0 @@
-// user related functions file

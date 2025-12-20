@@ -1,25 +1,24 @@
-import React, { useState } from 'react';
 import {
-  Globe,
-  MapPin,
-  Compass,
-  Users,
-  Calendar,
-  MessageCircle,
-  Mail,
-  Phone,
-  Facebook,
-  Twitter,
-  Instagram,
-  Youtube,
   ArrowRight,
-  Heart,
-  Shield,
+  Calendar,
+  Compass,
+  Facebook,
   FileText,
+  Globe,
+  Heart,
   HelpCircle,
+  Instagram,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Plane,
+  Shield,
   Star,
-  Plane
-} from 'lucide-react';
+  Twitter,
+  Users,
+  Youtube} from 'lucide-react';
+import React, { useState } from 'react';
 
 function Footer() {
   const [email, setEmail] = useState('');
